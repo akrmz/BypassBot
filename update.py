@@ -1,4 +1,4 @@
-from os import getenv
+from os import path as opath, getenv
 from logging import (
     StreamHandler,
     INFO,
