@@ -1,4 +1,4 @@
-from os import path as opath, getenv
+from os import getenv
 from logging import (
     StreamHandler,
     INFO,
@@ -19,32 +19,34 @@ basicConfig(
         StreamHandler(),
     ],
 )
-load_dotenv("config.env", override=True)
 
-UPSTREAM_REPO = getenv("UPSTREAM_REPO", "https://github.com/SilentDemonSD/FZBypassBot")
+# Load the environment variables from config.env without overriding existing ones
+load_dotenv("config.env", override=False)
+
+UPSTREAM_REPO = getenv("UPSTREAM_REPO", "https://github.com/akrmz/BypassBot/")
 UPSTREAM_BRANCH = getenv("UPSTREAM_BRANCH", "main")
 
-if UPSTREAM_REPO is not None:
-    if opath.exists(".git"):
-        srun(["rm", "-rf", ".git"])
+if UPSTREAM_REPO:
+    # Check if the repository already exists (i.e., .git directory exists)
+    if not opath.exists(".git"):
+        log_info(".git directory not found, initializing repository.")
+        srun(["git", "init", "-q"], shell=True)
 
-    update = srun(
-        [
-            f"git init -q \
-                     && git config --global user.email drxxstrange@gmail.com \
-                     && git config --global user.name SilentDemonSD \
-                     && git add . \
-                     && git commit -sm update -q \
-                     && git remote add origin {UPSTREAM_REPO} \
-                     && git fetch origin -q \
-                     && git reset --hard origin/{UPSTREAM_BRANCH} -q"
-        ],
-        shell=True,
-    )
-
-    if update.returncode == 0:
-        log_info("Successfully updated with latest commit from UPSTREAM_REPO")
+    # Add upstream repo as remote (if it doesn't already exist)
+    srun(["git", "remote", "add", "origin", UPSTREAM_REPO], shell=True)
+    
+    # Fetch the latest changes from upstream
+    fetch_result = srun(["git", "fetch", "origin", "-q"], shell=True)
+    
+    # Hard reset to the latest commit on the UPSTREAM_BRANCH
+    if fetch_result.returncode == 0:
+        reset_result = srun(["git", "reset", "--hard", f"origin/{UPSTREAM_BRANCH}", "-q"], shell=True)
+        if reset_result.returncode == 0:
+            log_info("Successfully updated with latest commit from UPSTREAM_REPO")
+        else:
+            log_error("Failed to reset to the latest commit.")
     else:
-        log_error(
-            "Something went wrong while updating, check UPSTREAM_REPO if valid or not!"
-        )
+        log_error("Failed to fetch from UPSTREAM_REPO. Check if the repository is valid.")
+
+else:
+    log_error("UPSTREAM_REPO environment variable is not set.")
