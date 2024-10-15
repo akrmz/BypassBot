@@ -30,7 +30,8 @@ if UPSTREAM_REPO is not None:
 
     update = srun(
         [
-        "git fetch origin -q \
+        "git remote add origin {UPSTREAM_REPO} \
+        && git fetch origin -q \
         && git merge origin/{UPSTREAM_BRANCH} -q"
     ],
         shell=True,
