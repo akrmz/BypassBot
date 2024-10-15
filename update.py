@@ -24,22 +24,27 @@ load_dotenv("config.env", override=True)
 UPSTREAM_REPO = getenv("UPSTREAM_REPO", "https://github.com/akrmz/BypassBot")
 UPSTREAM_BRANCH = getenv("UPSTREAM_BRANCH", "main")
 
-if UPSTREAM_REPO is not None:
-    if opath.exists(".git"):
-        srun(["rm", "-rf", ".git"])
+# Check if the .git directory exists
+if opath.exists(".git"):
+    # Check if the remote already exists
+    remote_check = srun(["git", "remote", "-v"], capture_output=True, text=True)
+    if "origin" not in remote_check.stdout:
+        # Add remote if it doesn't exist
+        add_remote = srun(["git", "remote", "add", "origin", UPSTREAM_REPO], capture_output=True, text=True)
+        if add_remote.returncode != 0:
+            log_error(f"Failed to add remote: {add_remote.stderr}")
+            exit(1)
 
-    update = srun(
-        [
-        "git remote add origin {UPSTREAM_REPO} \
-        && git fetch origin -q \
-        && git merge origin/{UPSTREAM_BRANCH} -q"
-    ],
-        shell=True,
-    )
-
-    if update.returncode == 0:
-        log_info("Successfully updated with latest commit from UPSTREAM_REPO")
+    # Fetch the latest changes from the upstream repo
+    fetch_result = srun(["git", "fetch", "origin"], capture_output=True, text=True)
+    if fetch_result.returncode == 0:
+        # Merge the changes into the current branch
+        merge_result = srun(["git", "merge", f"origin/{UPSTREAM_BRANCH}"], capture_output=True, text=True)
+        if merge_result.returncode == 0:
+            log_info("Successfully updated with latest commit from UPSTREAM_REPO")
+        else:
+            log_error(f"Merge failed: {merge_result.stderr}")
     else:
-        log_error(
-            "Something went wrong while updating, check UPSTREAM_REPO if valid or not!"
-        )
+        log_error(f"Fetch failed: {fetch_result.stderr}")
+else:
+    log_error("No .git directory found. Please initialize a git repository first.")
