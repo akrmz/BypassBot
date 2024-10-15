@@ -339,7 +339,7 @@ async def direct_link_checker(link, onlylink=False):
         )
     elif bool(match(r"https?:\/\/linkjust\.\S+", link)):
         blink = await transcript(
-            link, "https://linkjust.com/", "https://fx4ever.com/", 3.1
+            link, "https://linkjust.com/", "https://forexrw7.com/", 3.1
         )
     elif bool(match(r"https?:\/\/pdiskshortener\.\S+", link)):
         blink = await transcript(
